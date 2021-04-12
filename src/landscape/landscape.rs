@@ -1,5 +1,6 @@
-use crate::landscape::bonsai_command::{translate_command_list, BonsaiCommand};
-use crate::landscape::bonsai_task::BonsaiTask;
+use crate::landscape::task::BonsaiTask;
+use crate::landscape::command::{BonsaiCommand, translate_command_list};
+use crate::landscape::pot::BonsaiPotDesc;
 use serde::{Deserialize, Serialize};
 use shrub_rs::models::builtin::EvgCommandType;
 use shrub_rs::models::commands::EvgCommand;
@@ -7,34 +8,6 @@ use shrub_rs::models::project::{EvgModule, EvgParameter, EvgProject};
 use shrub_rs::models::task::EvgTask;
 use shrub_rs::models::variant::BuildVariant;
 use std::collections::HashMap;
-use std::fs::read_to_string;
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "lowercase")]
-pub enum BonsaiPotLocation {
-    Local,
-    Github,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct BonsaiPotDesc {
-    pub name: String,
-    pub location: BonsaiPotLocation,
-    pub path: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct BonsaiPot {
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    pub functions: HashMap<String, Vec<EvgCommand>>,
-}
-
-impl BonsaiPotDesc {
-    fn get_module(&self) -> BonsaiPot {
-        let contents = read_to_string(&self.path).unwrap();
-        serde_yaml::from_str(&contents).unwrap()
-    }
-}
 
 /// Description of an Bonsai Consumer Project.
 #[derive(Serialize, Deserialize, Debug)]

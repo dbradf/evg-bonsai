@@ -1,3 +1,4 @@
-pub mod bonsai_command;
-pub mod bonsai_landscape;
-pub mod bonsai_task;
+pub mod command;
+pub mod landscape;
+pub mod pot;
+pub mod task;
