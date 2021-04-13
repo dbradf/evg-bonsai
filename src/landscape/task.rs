@@ -32,7 +32,7 @@ impl BonsaiTask {
         EvgTask {
             name: self.name.clone(),
             commands: command_list,
-            depends_on: None, // XXX
+            depends_on: self.depends_on.as_ref().map(|d| d.to_vec()),
             exec_timeout_secs: self.exec_timeout_secs,
             tags: self.tags.clone(),
             patchable: self.patchable,

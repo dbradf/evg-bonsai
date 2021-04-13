@@ -37,7 +37,7 @@ Evergreen Bonsai is meant to address those 2 pain points. It allows you to build
 perform actions in Evergreen and then compose those components together to compile down into
 an actual Evergreen configuration.
 
-There are 2 key components to using `evg-bonsai`: pots and landscapes
+There are 2 key components to using `evg-bonsai`: pots and landscapes.
 
 ### Bonsai pots
 
