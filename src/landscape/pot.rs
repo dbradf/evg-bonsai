@@ -1,7 +1,10 @@
+use crate::pot::remote_pot::get_remote_pot;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use shrub_rs::models::commands::EvgCommand;
+use std::collections::HashMap;
+use std::error::Error;
 use std::fs::read_to_string;
+use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct LocalSourceDesc {
@@ -9,17 +12,25 @@ pub struct LocalSourceDesc {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "lowercase")]
+pub struct GithubSourceDesc {
+    pub owner: String,
+    pub repo: String,
+    pub revision: Option<String>,
+    pub pot_name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "lowercase", tag = "source")]
 pub enum BonsaiPotSource {
     Local(LocalSourceDesc),
-    Github,
+    Github(GithubSourceDesc),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BonsaiPotDesc {
     pub name: String,
+    #[serde(flatten)]
     pub source: BonsaiPotSource,
-    pub path: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -28,9 +39,20 @@ pub struct BonsaiPot {
     pub functions: HashMap<String, Vec<EvgCommand>>,
 }
 
+impl BonsaiPot {
+    pub fn from_path(path: &Path) -> Result<BonsaiPot, Box<dyn Error>> {
+        let contents = read_to_string(path)?;
+        Ok(serde_yaml::from_str(&contents)?)
+    }
+}
+
 impl BonsaiPotDesc {
     pub fn get_module(&self) -> BonsaiPot {
-        let contents = read_to_string(&self.path).unwrap();
-        serde_yaml::from_str(&contents).unwrap()
+        match &self.source {
+            BonsaiPotSource::Local(local_source) => {
+                BonsaiPot::from_path(Path::new(&local_source.path)).unwrap()
+            }
+            BonsaiPotSource::Github(github) => get_remote_pot(github).unwrap(),
+        }
     }
 }

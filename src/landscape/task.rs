@@ -1,6 +1,6 @@
+use crate::landscape::command::{translate_command_list, BonsaiCommand};
 use serde::{Deserialize, Serialize};
-use shrub_rs::models::task::{TaskDependency, EvgTask};
-use crate::landscape::command::{BonsaiCommand, translate_command_list};
+use shrub_rs::models::task::{EvgTask, TaskDependency};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BonsaiTask {
