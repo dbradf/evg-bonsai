@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use shrub_rs::models::params::ParamValue;
-use shrub_rs::models::commands::{Command, FunctionCall};
+use shrub_rs::models::commands::FunctionCall;
+use shrub_rs::models::{commands::EvgCommand, params::ParamValue};
+use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BonsaiCall {
@@ -19,11 +19,11 @@ impl BonsaiCall {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum BonsaiCommand {
-    EvergreenNative(Command),
+    EvergreenNative(EvgCommand),
     Bonsai(BonsaiCall),
 }
 
-pub fn translate_command_list(bonsai_command_list: &Vec<BonsaiCommand>) -> Vec<Command> {
+pub fn translate_command_list(bonsai_command_list: &Vec<BonsaiCommand>) -> Vec<EvgCommand> {
     let mut command_list = vec![];
     for command in bonsai_command_list {
         let evg_command = match command {
@@ -32,7 +32,7 @@ pub fn translate_command_list(bonsai_command_list: &Vec<BonsaiCommand>) -> Vec<C
                     Some(vars) => Some(vars.clone()),
                     None => None,
                 };
-                Command::Function(FunctionCall {
+                EvgCommand::Function(FunctionCall {
                     func: b_cmd.get_fn_name(),
                     vars: parameters,
                     timeout_secs: None,

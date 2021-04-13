@@ -1,12 +1,12 @@
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use shrub_rs::models::variant::BuildVariant;
-use shrub_rs::models::project::{EvgModule, EvgParameter, EvgProject};
-use shrub_rs::models::builtin::CommandType;
-use shrub_rs::models::commands::Command;
-use shrub_rs::models::task::EvgTask;
+use crate::landscape::bonsai_command::{translate_command_list, BonsaiCommand};
 use crate::landscape::bonsai_task::BonsaiTask;
-use crate::landscape::bonsai_command::{BonsaiCommand, translate_command_list};
+use serde::{Deserialize, Serialize};
+use shrub_rs::models::builtin::EvgCommandType;
+use shrub_rs::models::commands::EvgCommand;
+use shrub_rs::models::project::{EvgModule, EvgParameter, EvgProject};
+use shrub_rs::models::task::EvgTask;
+use shrub_rs::models::variant::BuildVariant;
+use std::collections::HashMap;
 use std::fs::read_to_string;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -26,7 +26,7 @@ pub struct BonsaiPotDesc {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BonsaiPot {
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    pub functions: HashMap<String, Vec<Command>>,
+    pub functions: HashMap<String, Vec<EvgCommand>>,
 }
 
 impl BonsaiPotDesc {
@@ -73,7 +73,7 @@ pub struct BonsaiLandscape {
     pub oom_tracker: Option<bool>,
     /// Describe the type of failure a task failure should trigger.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub command_type: Option<CommandType>,
+    pub command_type: Option<EvgCommandType>,
     /// List of globs that describe file changes that won't trigger a new build.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ignore: Option<Vec<String>>,
@@ -139,7 +139,7 @@ impl BonsaiLandscape {
         }
     }
 
-    fn translate_pre(&self) -> Option<Vec<Command>> {
+    fn translate_pre(&self) -> Option<Vec<EvgCommand>> {
         if let Some(pre_commands) = &self.pre {
             Some(translate_command_list(pre_commands))
         } else {
@@ -147,7 +147,7 @@ impl BonsaiLandscape {
         }
     }
 
-    fn translate_post(&self) -> Option<Vec<Command>> {
+    fn translate_post(&self) -> Option<Vec<EvgCommand>> {
         if let Some(post_commands) = &self.post {
             Some(translate_command_list(post_commands))
         } else {
@@ -155,7 +155,7 @@ impl BonsaiLandscape {
         }
     }
 
-    fn translate_timeout(&self) -> Option<Vec<Command>> {
+    fn translate_timeout(&self) -> Option<Vec<EvgCommand>> {
         if let Some(timeout_commands) = &self.timeout {
             Some(translate_command_list(timeout_commands))
         } else {
@@ -167,7 +167,7 @@ impl BonsaiLandscape {
         self.tasks.iter().map(|t| t.to_evg_task()).collect()
     }
 
-    fn translate_functions(&self) -> HashMap<String, Vec<Command>> {
+    fn translate_functions(&self) -> HashMap<String, Vec<EvgCommand>> {
         let mut new_map = HashMap::new();
         for (k, v) in &self.functions {
             new_map.insert(k.clone(), translate_command_list(&v));
@@ -175,4 +175,3 @@ impl BonsaiLandscape {
         new_map
     }
 }
-
