@@ -18,7 +18,7 @@ pub fn build_landscape(
     }
     let contents = read_to_string(source_file)?;
     let bonsai_project: BonsaiLandscape = serde_yaml::from_str(&contents)?;
-    let evergreen_project = bonsai_project.create_evg_project();
+    let evergreen_project = bonsai_project.create_evg_project()?;
 
     let project_config = serde_yaml::to_string(&evergreen_project)?;
     let now = Utc::now();

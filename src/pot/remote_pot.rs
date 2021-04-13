@@ -6,7 +6,7 @@ use std::error::Error;
 
 const MANIFEST_FILE: &str = "bonsai.manifest.yml";
 
-pub fn get_remote_pot(github_source: &GithubSourceDesc) -> Result<BonsaiPot, Box<dyn Error>> {
+pub fn get_remote_pots(github_source: &GithubSourceDesc) -> Result<Vec<BonsaiPot>, Box<dyn Error>> {
     let repo_path = get_repository(
         &github_source.owner,
         &github_source.repo,
@@ -23,12 +23,13 @@ pub fn get_remote_pot(github_source: &GithubSourceDesc) -> Result<BonsaiPot, Box
     }
 
     let manifest = BonsaiPotManifest::from_path(manifest_path.as_path())?;
-    let pot_name = &github_source.pot_name;
-    if let Some(metadata) = manifest.bonsai_pots.get(pot_name) {
-        let mut pot_path = repo_path;
-        pot_path.push(&metadata.path);
-        BonsaiPot::from_path(pot_path.as_path())
-    } else {
-        bail!(format!("Could not find pot({}) in manifest", pot_name))
-    }
+    manifest
+        .bonsai_pots
+        .iter()
+        .map(|pot_md| {
+            let mut pot_path = repo_path.clone();
+            pot_path.push(&pot_md.path);
+            BonsaiPot::from_path(pot_path.as_path())
+        })
+        .collect()
 }

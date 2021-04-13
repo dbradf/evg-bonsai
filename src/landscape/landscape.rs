@@ -8,6 +8,7 @@ use shrub_rs::models::project::{EvgModule, EvgParameter, EvgProject};
 use shrub_rs::models::task::EvgTask;
 use shrub_rs::models::variant::BuildVariant;
 use std::collections::HashMap;
+use std::error::Error;
 
 /// Description of an Bonsai Consumer Project.
 #[derive(Serialize, Deserialize, Debug)]
@@ -77,18 +78,20 @@ impl Default for BonsaiLandscape {
 }
 
 impl BonsaiLandscape {
-    pub fn create_evg_project(self) -> EvgProject {
+    pub fn create_evg_project(self) -> Result<EvgProject, Box<dyn Error>> {
         let mut function_map = HashMap::new();
-        if let Some(bonsai_modules) = &self.bonsai {
-            for module in bonsai_modules {
-                let module_details = module.get_module();
-                for (fn_name, fn_def) in module_details.functions {
-                    function_map.insert(format!("{}_{}", module.name, fn_name), fn_def.actions);
+        if let Some(bonsai_pot_list) = &self.bonsai {
+            for pot_descriptor in bonsai_pot_list {
+                let pot_list = pot_descriptor.get_pots()?;
+                for pot in pot_list {
+                    for (fn_name, fn_def) in pot.functions {
+                        function_map.insert(format!("{}_{}", pot.name, fn_name), fn_def.actions);
+                    }
                 }
             }
         }
 
-        EvgProject {
+        Ok(EvgProject {
             buildvariants: self.buildvariants.clone(),
 
             functions: self
@@ -109,7 +112,7 @@ impl BonsaiLandscape {
             command_type: self.command_type,
             ignore: self.ignore,
             parameters: self.parameters,
-        }
+        })
     }
 
     fn translate_pre(&self) -> Option<Vec<EvgCommand>> {

@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::error::Error;
 use std::path::Path;
 
@@ -11,7 +10,7 @@ pub struct BonsaiPotMetadata {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BonsaiPotManifest {
-    pub bonsai_pots: HashMap<String, BonsaiPotMetadata>,
+    pub bonsai_pots: Vec<BonsaiPotMetadata>,
 }
 
 impl BonsaiPotManifest {

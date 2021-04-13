@@ -1,4 +1,4 @@
-use crate::pot::remote_pot::get_remote_pot;
+use crate::pot::remote_pot::get_remote_pots;
 use serde::{Deserialize, Serialize};
 use shrub_rs::models::commands::EvgCommand;
 use std::collections::HashMap;
@@ -16,7 +16,6 @@ pub struct GithubSourceDesc {
     pub owner: String,
     pub repo: String,
     pub revision: Option<String>,
-    pub pot_name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -28,7 +27,6 @@ pub enum BonsaiPotSource {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BonsaiPotDesc {
-    pub name: String,
     #[serde(flatten)]
     pub source: BonsaiPotSource,
 }
@@ -49,6 +47,7 @@ pub struct BonsaiPotFunction {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BonsaiPot {
+    pub name: String,
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     pub functions: HashMap<String, BonsaiPotFunction>,
 }
@@ -61,12 +60,12 @@ impl BonsaiPot {
 }
 
 impl BonsaiPotDesc {
-    pub fn get_module(&self) -> BonsaiPot {
+    pub fn get_pots(&self) -> Result<Vec<BonsaiPot>, Box<dyn Error>> {
         match &self.source {
             BonsaiPotSource::Local(local_source) => {
-                BonsaiPot::from_path(Path::new(&local_source.path)).unwrap()
+                Ok(vec![BonsaiPot::from_path(Path::new(&local_source.path))?])
             }
-            BonsaiPotSource::Github(github) => get_remote_pot(github).unwrap(),
+            BonsaiPotSource::Github(github) => get_remote_pots(github),
         }
     }
 }
