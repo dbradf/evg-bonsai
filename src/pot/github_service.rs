@@ -1,6 +1,6 @@
 use directories_next::BaseDirs;
 use git2::build::{CheckoutBuilder, RepoBuilder};
-use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
+use git2::{AutotagOption, Cred, FetchOptions, RemoteCallbacks, Repository};
 use simple_error::bail;
 use std::env;
 use std::error::Error;
@@ -23,7 +23,7 @@ fn get_cache_dir() -> Result<PathBuf, Box<dyn Error>> {
     }
 }
 
-fn clone_via_ssh(url: &str, path: &Path) -> Result<Repository, Box<dyn Error>> {
+fn create_ssh_fetch_options() -> FetchOptions<'static> {
     let mut callbacks = RemoteCallbacks::new();
     callbacks.credentials(|_url, username_from_url, _allowed_types| {
         Cred::ssh_key(
@@ -36,21 +36,29 @@ fn clone_via_ssh(url: &str, path: &Path) -> Result<Repository, Box<dyn Error>> {
 
     let mut fo = FetchOptions::new();
     fo.remote_callbacks(callbacks);
+    fo.download_tags(AutotagOption::All);
 
+    fo
+}
+
+fn clone_via_ssh(url: &str, path: &Path) -> Result<Repository, Box<dyn Error>> {
+    let fo = create_ssh_fetch_options();
     Ok(RepoBuilder::new().fetch_options(fo).clone(url, path)?)
 }
 
 fn fast_forward(repo: &Repository) -> Result<(), Box<dyn Error>> {
     let branch = "master";
+    let mut fo = create_ssh_fetch_options();
 
-    repo.find_remote("origin")?.fetch(&[branch], None, None)?;
+    repo.find_remote("origin")?
+        .fetch(&[branch], Some(&mut fo), None)?;
     let fetch_head = repo.find_reference("FETCH_HEAD")?;
     let fetch_commit = repo.reference_to_annotated_commit(&fetch_head)?;
     let analysis = repo.merge_analysis(&[&fetch_commit])?;
     if analysis.0.is_up_to_date() {
         Ok(())
     } else if analysis.0.is_fast_forward() {
-        let refname = format!("refs/head/{}", branch);
+        let refname = format!("refs/heads/{}", branch);
         let mut reference = repo.find_reference(&refname)?;
         reference.set_target(fetch_commit.id(), "Fast-Forward")?;
         repo.set_head(&refname)?;
@@ -75,7 +83,7 @@ pub fn get_repository(
         clone_via_ssh(&url, &repo_dir.as_path())?
     };
 
-    // fast_forward(&repo)?;
+    fast_forward(&repo)?;
 
     if let Some(rev) = revision {
         repo.set_head(rev)?;
