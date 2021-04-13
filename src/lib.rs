@@ -8,6 +8,8 @@ use std::path::Path;
 pub mod landscape;
 pub mod pot;
 
+const SUPPORT_FILE_DIRECTORY: &str = "bonsai_files";
+
 pub fn build_landscape(
     source_file: &Path,
     target_dir: &Path,
@@ -16,9 +18,13 @@ pub fn build_landscape(
     if !target_dir.exists() {
         create_dir_all(target_dir)?;
     }
+    let mut support_files_destination = target_dir.to_path_buf();
+    support_files_destination.push(SUPPORT_FILE_DIRECTORY);
+
     let contents = read_to_string(source_file)?;
     let bonsai_project: BonsaiLandscape = serde_yaml::from_str(&contents)?;
     let evergreen_project = bonsai_project.create_evg_project()?;
+    bonsai_project.copy_remote_support_files(support_files_destination.as_path())?;
 
     let project_config = serde_yaml::to_string(&evergreen_project)?;
     let now = Utc::now();

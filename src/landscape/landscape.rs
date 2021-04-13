@@ -1,6 +1,7 @@
 use crate::landscape::command::{translate_command_list, BonsaiCommand};
-use crate::landscape::pot::BonsaiPotDesc;
+use crate::landscape::pot::{BonsaiPotDesc, BonsaiPotSource};
 use crate::landscape::task::BonsaiTask;
+use crate::pot::remote_pot::copy_support_files;
 use serde::{Deserialize, Serialize};
 use shrub_rs::models::builtin::EvgCommandType;
 use shrub_rs::models::commands::EvgCommand;
@@ -9,6 +10,7 @@ use shrub_rs::models::task::EvgTask;
 use shrub_rs::models::variant::BuildVariant;
 use std::collections::HashMap;
 use std::error::Error;
+use std::path::Path;
 
 /// Description of an Bonsai Consumer Project.
 #[derive(Serialize, Deserialize, Debug)]
@@ -20,8 +22,8 @@ pub struct BonsaiLandscape {
     /// List of task definitions.
     pub tasks: Vec<BonsaiTask>,
     /// Definitions of functions belonging to this landscape.
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    pub functions: HashMap<String, Vec<BonsaiCommand>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub functions: Option<HashMap<String, Vec<BonsaiCommand>>>,
     /// List of commands to run at the start of each task.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pre: Option<Vec<BonsaiCommand>>,
@@ -78,7 +80,19 @@ impl Default for BonsaiLandscape {
 }
 
 impl BonsaiLandscape {
-    pub fn create_evg_project(self) -> Result<EvgProject, Box<dyn Error>> {
+    pub fn copy_remote_support_files(&self, destination_dir: &Path) -> Result<(), Box<dyn Error>> {
+        if let Some(bonsai_pot_list) = &self.bonsai {
+            for pot_descriptor in bonsai_pot_list {
+                if let BonsaiPotSource::Github(github_source) = &pot_descriptor.source {
+                    copy_support_files(github_source, destination_dir)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn create_evg_project(&self) -> Result<EvgProject, Box<dyn Error>> {
         let mut function_map = HashMap::new();
         if let Some(bonsai_pot_list) = &self.bonsai {
             for pot_descriptor in bonsai_pot_list {
@@ -105,13 +119,13 @@ impl BonsaiLandscape {
             post: self.translate_post(),
             timeout: self.translate_timeout(),
 
-            modules: self.modules,
+            modules: self.modules.as_ref().map(|m| m.to_vec()),
             stepback: self.stepback,
             pre_error_fails_task: self.pre_error_fails_task,
             oom_tracker: self.oom_tracker,
-            command_type: self.command_type,
-            ignore: self.ignore,
-            parameters: self.parameters,
+            command_type: self.command_type.as_ref().cloned(),
+            ignore: self.ignore.as_ref().cloned(),
+            parameters: self.parameters.as_ref().cloned(),
         })
     }
 
@@ -145,8 +159,10 @@ impl BonsaiLandscape {
 
     fn translate_functions(&self) -> HashMap<String, Vec<EvgCommand>> {
         let mut new_map = HashMap::new();
-        for (k, v) in &self.functions {
-            new_map.insert(k.clone(), translate_command_list(&v));
+        if let Some(functions) = &self.functions {
+            for (k, v) in functions {
+                new_map.insert(k.clone(), translate_command_list(&v));
+            }
         }
         new_map
     }

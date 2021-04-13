@@ -432,9 +432,9 @@ dependencies = [
 
 [[package]]
 name = "shrub-rs"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54626c5b5665a2d361e99c8546176af1ab8d8c76f637768c780093ec4998d036"
+checksum = "024d2d604cd1427f414aa50c7e01aa183b1775b505bfae1b3de6e7fd7b1ed2c1"
 dependencies = [
  "serde",
 ]
