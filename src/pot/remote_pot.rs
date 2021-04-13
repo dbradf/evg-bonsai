@@ -25,7 +25,7 @@ pub fn get_remote_pot(github_source: &GithubSourceDesc) -> Result<BonsaiPot, Box
     let manifest = BonsaiPotManifest::from_path(manifest_path.as_path())?;
     let pot_name = &github_source.pot_name;
     if let Some(metadata) = manifest.bonsai_pots.get(pot_name) {
-        let mut pot_path = repo_path.clone();
+        let mut pot_path = repo_path;
         pot_path.push(&metadata.path);
         BonsaiPot::from_path(pot_path.as_path())
     } else {

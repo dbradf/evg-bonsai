@@ -74,7 +74,7 @@ pub fn get_repository(
     revision: Option<&str>,
 ) -> Result<PathBuf, Box<dyn Error>> {
     let base_dir = get_cache_dir()?;
-    let mut repo_dir = base_dir.clone();
+    let mut repo_dir = base_dir;
     repo_dir.push(repo);
     let repo = if repo_dir.exists() {
         Repository::open(&repo_dir)?

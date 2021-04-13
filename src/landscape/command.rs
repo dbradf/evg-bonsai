@@ -11,7 +11,7 @@ pub struct BonsaiCall {
 
 impl BonsaiCall {
     fn get_fn_name(&self) -> String {
-        let parts: Vec<&str> = self.bonsai.split(":").collect();
+        let parts: Vec<&str> = self.bonsai.split(':').collect();
         format!("{}_{}", parts[0], parts[1])
     }
 }
@@ -23,7 +23,7 @@ pub enum BonsaiCommand {
     Bonsai(BonsaiCall),
 }
 
-pub fn translate_command_list(bonsai_command_list: &Vec<BonsaiCommand>) -> Vec<EvgCommand> {
+pub fn translate_command_list(bonsai_command_list: &[BonsaiCommand]) -> Vec<EvgCommand> {
     let mut command_list = vec![];
     for command in bonsai_command_list {
         let evg_command = match command {
