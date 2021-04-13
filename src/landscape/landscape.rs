@@ -83,7 +83,7 @@ impl BonsaiLandscape {
             for module in bonsai_modules {
                 let module_details = module.get_module();
                 for (fn_name, fn_def) in module_details.functions {
-                    function_map.insert(format!("{}_{}", module.name, fn_name), fn_def);
+                    function_map.insert(format!("{}_{}", module.name, fn_name), fn_def.actions);
                 }
             }
         }

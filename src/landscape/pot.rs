@@ -34,9 +34,23 @@ pub struct BonsaiPotDesc {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct BonsaiPotParam {
+    pub name: String,
+    pub description: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct BonsaiPotFunction {
+    pub description: String,
+    pub actions: Vec<EvgCommand>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub params: Option<Vec<BonsaiPotParam>>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct BonsaiPot {
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    pub functions: HashMap<String, Vec<EvgCommand>>,
+    pub functions: HashMap<String, BonsaiPotFunction>,
 }
 
 impl BonsaiPot {
