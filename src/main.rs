@@ -1,17 +1,34 @@
-use chrono::prelude::*;
-use evg_bonsai::landscape::landscape::BonsaiLandscape;
-use std::fs::read_to_string;
+use evg_bonsai::build_landscape;
+use std::error::Error;
+use std::path::PathBuf;
+use structopt::StructOpt;
 
-fn main() {
-    let source_file = std::env::args().nth(1).expect("Missing argument");
+#[derive(Debug, StructOpt)]
+#[structopt(name = "evg-bonsai")]
+enum Opt {
+    /// Generate an Evergreen YAML configuration from a given bonsai source.
+    Build {
+        /// File to build evergreen configuration from.
+        #[structopt(parse(from_os_str), long = "source-file")]
+        source_file: PathBuf,
 
-    let contents = read_to_string(source_file).unwrap();
-    let bonsai_project: BonsaiLandscape = serde_yaml::from_str(&contents).unwrap();
-    let evergreen_project = bonsai_project.create_evg_project();
+        /// Directory write generated content to.
+        #[structopt(parse(from_os_str), long = "target-dir", default_value = ".")]
+        target_dir: PathBuf,
 
-    let project_config = serde_yaml::to_string(&evergreen_project).unwrap();
-    println!("# Generated from bonsai");
-    let now = Utc::now();
-    println!("# Generated at: {}", now);
-    println!("{}", project_config);
+        /// Filename to use for generated output.
+        #[structopt(long = "target-filename", default_value = "evergreen.yml")]
+        target_filename: String,
+    },
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let opt = Opt::from_args();
+    match opt {
+        Opt::Build {
+            source_file,
+            target_dir,
+            target_filename,
+        } => build_landscape(&source_file, &target_dir, &target_filename),
+    }
 }
