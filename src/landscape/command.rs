@@ -3,20 +3,20 @@ use shrub_rs::models::commands::FunctionCall;
 use shrub_rs::models::{commands::EvgCommand, params::ParamValue};
 use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BonsaiCall {
     pub bonsai: String,
     pub params: Option<HashMap<String, ParamValue>>,
 }
 
 impl BonsaiCall {
-    fn get_fn_name(&self) -> String {
+    pub fn get_fn_name(&self) -> String {
         let parts: Vec<&str> = self.bonsai.split(':').collect();
         format!("{}_{}", parts[0], parts[1])
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum BonsaiCommand {
     EvergreenNative(EvgCommand),

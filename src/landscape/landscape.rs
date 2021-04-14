@@ -93,17 +93,31 @@ impl BonsaiLandscape {
     }
 
     pub fn create_evg_project(&self) -> Result<EvgProject, Box<dyn Error>> {
-        let mut function_map = HashMap::new();
+        let mut pot_map = HashMap::new();
         if let Some(bonsai_pot_list) = &self.bonsai {
-            for pot_descriptor in bonsai_pot_list {
-                let pot_list = pot_descriptor.get_pots()?;
-                for pot in pot_list {
-                    for (fn_name, fn_def) in pot.functions {
-                        function_map.insert(format!("{}_{}", pot.name, fn_name), fn_def.actions);
-                    }
-                }
-            }
+            bonsai_pot_list.iter().try_for_each(|p| p.update_pot_map(&mut pot_map))?;
+            // for pot_descriptor in bonsai_pot_list {
+            //     pot_descriptor.update_pot_map(&mut pot_map)?;
+            //     // let pot_list = pot_descriptor.get_pots()?;
+            //     // for pot in pot_list {
+            //     //     for (fn_name, fn_def) in pot.functions {
+            //     //         function_map.insert(format!("{}_{}", pot.name, fn_name), fn_def.actions);
+            //     //     }
+            //     // }
+            // }
         }
+
+        let mut function_map = HashMap::new();
+        let mut still_updating = true;
+        while still_updating {
+            still_updating = pot_map.values().any(|p| p.update_fn_map(&mut function_map));
+        }
+        // for pot in &pot_map.values() {
+        //
+        //     for (fn_name, fn_dev) in pot.functions {
+        //         function_map.insert(format!("{}_{}", pot.name, fn_name), );
+        //     }
+        // }
 
         Ok(EvgProject {
             buildvariants: self.buildvariants.clone(),

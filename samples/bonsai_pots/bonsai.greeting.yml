@@ -1,0 +1,16 @@
+name: greetings
+functions:
+  hello world:
+    description: Tell the world hello
+    params:
+      - name: person
+        description: Name of person being greeted
+    actions:
+      - command: shell.exec
+        params:
+          script: |
+            if [ -n "${person}" ]; then
+              echo "Hello ${person}"
+            else
+              echo "Hello World"
+            fi

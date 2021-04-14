@@ -7,6 +7,9 @@ bonsai:
   - source: local
     path: bonsai_pots/bonsai.poetry.yml
 
+  - source: local
+    path: bonsai_pots/bonsai.greet_everyone.yml
+
 buildvariants:
   - display_name: Ubuntu 16.04
     name: ubuntu1604
@@ -37,6 +40,7 @@ post:
 tasks:
   - name: unit_tests
     commands:
+      - bonsai: greet_everyone:hello all
       - bonsai: mongo:get
       - bonsai: mongo:start
       - bonsai: npm:run

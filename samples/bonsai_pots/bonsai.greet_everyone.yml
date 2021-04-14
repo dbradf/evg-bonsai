@@ -1,0 +1,16 @@
+name: greet_everyone
+bonsai:
+  - source: local
+    path: bonsai_pots/bonsai.greeting.yml
+
+functions:
+  hello all:
+    description: Tell lots of people hello
+    actions:
+      - bonsai: greetings:hello world
+      - bonsai: greetings:hello world
+        params:
+          person: person 1
+      - bonsai: greetings:hello world
+        params:
+          person: person 2
