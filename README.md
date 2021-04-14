@@ -161,6 +161,12 @@ different projects. `github` pots should also include the `owner` and `repo` fie
 contains the pot(s). You can also provide an optional `branch` or `revision` key if you want more control over what
 version of the pot to use. By default, the latest version of the `master` branch will be used.
 
+```yaml
+- source: github
+  owner: dbradf
+  repo: bonsai-test-repo
+```
+
 ### Using Bonsai pot functions
 
 You can call out to functions from Bonsai pots anywhere in the configuration where a function call or built-in
