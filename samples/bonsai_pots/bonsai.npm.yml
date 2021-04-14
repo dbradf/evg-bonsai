@@ -1,0 +1,38 @@
+functions:
+  run:
+    - command: shell.exec
+      params:
+        working_dir: bonsai/npm
+        script: |
+          set -o errexit
+          set -o verbose
+
+          export NVM_DIR=$(pwd)/nvm
+          . "$NVM_DIR/nvm.sh"
+
+          cd ../../${target_dir}
+          npm install
+          CI=true npm run ${npm_command}
+
+    
+  install node:
+  - command: shell.exec
+    params: 
+      script: |
+        set -o errexit
+        mkdir -p bonsai/npm
+
+  - command: shell.exec
+    params:
+      working_dir: bonsai/npm
+      script: |
+        set -o errexit
+
+        mkdir nvm
+        export NVM_DIR=$(pwd)/nvm
+        export PROFILE=/dev/null
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+
+        . "$NVM_DIR/nvm.sh"
+        nvm install --lts
+  

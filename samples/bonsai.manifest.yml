@@ -1,0 +1,9 @@
+bonsai_pots:
+  - path: bonsai/npm.bonsai.yml
+    description: Work with node.js npm commands.
+  - path: bonsai/mongo.bonsai.yml
+    description: Start a mongodb instance to run against.
+    include_files:
+      - bonsai/get_mongo_server
+      - bonsai/start_mongo_server
+      - bonsai/stop_mongo_server

@@ -1,0 +1,78 @@
+bonsai:
+  - source: github
+    owner: dbradf
+    repo: bonsai-test-repo
+    branch: master
+
+  - source: local
+    path: bonsai_pots/bonsai.poetry.yml
+
+buildvariants:
+  - display_name: Ubuntu 16.04
+    name: ubuntu1604
+    run_on:
+      - ubuntu1604-test
+    tasks:
+      - name: unit_tests
+      - name: test_ui
+      - name: lint_ui
+      - name: check_formatting_ui
+      - name: build_ui
+
+pre:
+  - command: git.get_project
+    params:
+      directory: src
+  - bonsai: poetry:install poetry
+    params:
+      target_dir: src
+      install_params: -E service
+  - bonsai: npm:install node
+
+post:
+  - command: attach.xunit_results
+    params:
+      file: src/*_junit.xml
+
+tasks:
+  - name: unit_tests
+    commands:
+      - bonsai: mongo:get
+      - bonsai: mongo:start
+      - bonsai: npm:run
+        params:
+          target_dir: src/bb-ui
+          npm_command: build
+      - bonsai: poetry:run
+        params:
+          target_dir: src
+          poetry_command: pytest --db-integration src tests
+      - bonsai: mongo:stop
+
+  - name: test_ui
+    commands:
+      - bonsai: npm:run
+        params:
+          target_dir: src/bb-ui
+          npm_command: test:ci
+
+  - name: lint_ui
+    commands:
+      - bonsai: npm:run
+        params:
+          target_dir: src/bb-ui
+          npm_command: lint:ci
+
+  - name: check_formatting_ui
+    commands:
+      - bonsai: npm:run
+        params:
+          target_dir: src/bb-ui
+          npm_command: format:ci
+
+  - name: build_ui
+    commands:
+      - bonsai: npm:run
+        params:
+          target_dir: src/bb-ui
+          npm_command: build

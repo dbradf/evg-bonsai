@@ -1,0 +1,55 @@
+name: poetry
+functions:
+  run:
+    description: Execute the specified action in poetry.
+    params:
+      - name: target_dir
+        description: Directory to execute poetry in.
+      - name: poetry_command
+        description: Poetry run command to execute.
+    actions:
+      - command: shell.exec
+        params:
+          working_dir: bonsai/python
+          script: |
+            . venv/bin/activate
+
+            cd ../../${target_dir}
+
+            poetry run ${poetry_command}
+        
+  install poetry:
+    description: |
+      Configurate and install poetry in a virtual environment.
+
+      This command needs to be executed before "run", as such it can be useful to
+      call it in a "pre" block.
+
+    params:
+      - name: target_dir
+        description:  Directory containing poetry configuration to install.
+      - name: install_params
+        description: Any extra parameters to pass to poetry install
+
+    actions:
+      - command: shell.exec
+        params: 
+          script: |
+            set -o errexit
+            mkdir -p bonsai/python
+
+      - command: shell.exec
+        params:
+          working_dir: bonsai/python
+          script: |
+            set -o errexit
+
+            python3 -m venv venv
+            . venv/bin/activate
+
+            pip install --upgrade pip
+
+            cd ../../${target_dir}
+            pip install poetry 
+            poetry install ${install_params}
+  
