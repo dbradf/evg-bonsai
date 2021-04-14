@@ -12,10 +12,18 @@ pub struct LocalSourceDesc {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum GithubVersionSpec {
+    Revision(String),
+    Branch(String),
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GithubSourceDesc {
     pub owner: String,
     pub repo: String,
-    pub revision: Option<String>,
+    #[serde(flatten)]
+    pub version: Option<GithubVersionSpec>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

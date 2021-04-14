@@ -22,7 +22,7 @@ pub fn get_remote_pots(github_source: &GithubSourceDesc) -> Result<Vec<BonsaiPot
     let repo_path = get_repository(
         &github_source.owner,
         &github_source.repo,
-        github_source.revision.as_deref(),
+        &github_source.version,
     )?;
     let manifest = find_manifest(repo_path.as_path())?;
     manifest
@@ -43,7 +43,7 @@ pub fn copy_support_files(
     let repo_path = get_repository(
         &github_source.owner,
         &github_source.repo,
-        github_source.revision.as_deref(),
+        &github_source.version,
     )?;
     let manifest = find_manifest(repo_path.as_path())?;
     manifest.copy_support_files(repo_path.as_path(), destination_dir)?;

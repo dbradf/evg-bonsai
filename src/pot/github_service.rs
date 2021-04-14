@@ -1,6 +1,7 @@
+use crate::landscape::pot::GithubVersionSpec;
 use directories_next::BaseDirs;
 use git2::build::{CheckoutBuilder, RepoBuilder};
-use git2::{AutotagOption, Cred, FetchOptions, RemoteCallbacks, Repository};
+use git2::{AutotagOption, Cred, FetchOptions, Oid, RemoteCallbacks, Repository};
 use simple_error::bail;
 use std::env;
 use std::error::Error;
@@ -46,12 +47,20 @@ fn clone_via_ssh(url: &str, path: &Path) -> Result<Repository, Box<dyn Error>> {
     Ok(RepoBuilder::new().fetch_options(fo).clone(url, path)?)
 }
 
+fn format_spec(branch_name: &str) -> String {
+    format!("refs/heads/{}", branch_name)
+}
+
+fn format_rm_spec(remote: &str, branch_name: &str) -> String {
+    format!("refs/remotes/{}/{}", remote, branch_name)
+}
+
 fn fast_forward(repo: &Repository) -> Result<(), Box<dyn Error>> {
     let branch = "master";
     let mut fo = create_ssh_fetch_options();
 
     repo.find_remote("origin")?
-        .fetch(&[branch], Some(&mut fo), None)?;
+        .fetch(&[] as &[&str], Some(&mut fo), None)?;
     let fetch_head = repo.find_reference("FETCH_HEAD")?;
     let fetch_commit = repo.reference_to_annotated_commit(&fetch_head)?;
     let analysis = repo.merge_analysis(&[&fetch_commit])?;
@@ -68,10 +77,37 @@ fn fast_forward(repo: &Repository) -> Result<(), Box<dyn Error>> {
     }
 }
 
+fn checkout_revision(repo: &Repository, revision: &str) -> Result<(), Box<dyn Error>> {
+    let revspec = format_spec(revision);
+
+    let oid = Oid::from_str(revision)?;
+    let commit = repo.find_commit(oid)?;
+    let obj_result = repo.revparse_single(&revspec);
+    if obj_result.is_err() {
+        let _branch = repo.branch(revision, &commit, false)?;
+    }
+    let obj = repo.revparse_single(&revspec)?;
+
+    repo.checkout_tree(&obj, None)?;
+    repo.set_head_detached(oid)?;
+
+    Ok(())
+}
+
+fn checkout_branch(repo: &Repository, branch_name: &str) -> Result<(), Box<dyn Error>> {
+    let revspec = format_rm_spec("origin", branch_name);
+    let obj = repo.revparse_single(&revspec)?;
+
+    repo.checkout_tree(&obj, None)?;
+    repo.set_head(&revspec)?;
+
+    Ok(())
+}
+
 pub fn get_repository(
     owner: &str,
     repo: &str,
-    revision: Option<&str>,
+    maybe_version: &Option<GithubVersionSpec>,
 ) -> Result<PathBuf, Box<dyn Error>> {
     let base_dir = get_cache_dir()?;
     let mut repo_dir = base_dir;
@@ -85,8 +121,12 @@ pub fn get_repository(
 
     fast_forward(&repo)?;
 
-    if let Some(rev) = revision {
-        repo.set_head(rev)?;
+    if let Some(version) = maybe_version {
+        println!("Version {:?} specified", version);
+        match version {
+            GithubVersionSpec::Branch(branch) => checkout_branch(&repo, branch)?,
+            GithubVersionSpec::Revision(rev) => checkout_revision(&repo, rev)?,
+        }
     }
 
     Ok(repo_dir.as_path().to_owned())
