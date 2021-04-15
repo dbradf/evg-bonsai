@@ -1,11 +1,11 @@
+use crate::landscape::command::BonsaiCommand;
 use crate::pot::remote_pot::get_remote_pots;
 use serde::{Deserialize, Serialize};
-use shrub_rs::models::commands::EvgCommand;
+use shrub_rs::models::project::FunctionDefinition;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::read_to_string;
 use std::path::Path;
-use crate::landscape::command::BonsaiCommand;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LocalSourceDesc {
@@ -55,7 +55,10 @@ pub struct BonsaiPotFunction {
 }
 
 impl BonsaiPotFunction {
-    pub fn try_translate(&self, fn_map: &HashMap<String, Vec<EvgCommand>>) -> Option<Vec<EvgCommand>> {
+    pub fn try_translate(
+        &self,
+        fn_map: &HashMap<String, FunctionDefinition>,
+    ) -> Option<FunctionDefinition> {
         let mut command_list = vec![];
         for cmd in &self.actions {
             match cmd {
@@ -64,15 +67,22 @@ impl BonsaiPotFunction {
                 }
                 BonsaiCommand::Bonsai(bonsai_call) => {
                     if let Some(fn_cmds) = fn_map.get(&bonsai_call.get_fn_name()) {
-                        command_list.extend(fn_cmds.to_vec());
+                        match fn_cmds {
+                            FunctionDefinition::CommandList(cmd_list) => {
+                                command_list.extend(cmd_list.to_vec());
+                            }
+                            FunctionDefinition::SingleCommand(cmd) => {
+                                command_list.push(cmd.clone());
+                            }
+                        }
                     } else {
-                        return None
+                        return None;
                     }
                 }
             }
         }
 
-        Some(command_list)
+        Some(FunctionDefinition::CommandList(command_list))
     }
 }
 
@@ -95,7 +105,7 @@ impl BonsaiPot {
         format!("{}_{}", self.name, base_name)
     }
 
-    pub fn update_fn_map(&self, fn_map: &mut HashMap<String, Vec<EvgCommand>>) -> bool {
+    pub fn update_fn_map(&self, fn_map: &mut HashMap<String, FunctionDefinition>) -> bool {
         let mut n_updates = 0;
         for (fn_name, fn_def) in &self.functions {
             if !fn_map.contains_key(&self.get_fn_name(fn_name)) {
@@ -121,13 +131,18 @@ impl BonsaiPotDesc {
         }
     }
 
-    pub fn update_pot_map(&self, pot_map: &mut HashMap<String, BonsaiPot>) -> Result<(), Box<dyn Error>> {
+    pub fn update_pot_map(
+        &self,
+        pot_map: &mut HashMap<String, BonsaiPot>,
+    ) -> Result<(), Box<dyn Error>> {
         let pots = self.get_pots()?;
         for pot in pots {
             if !pot_map.contains_key(&pot.name) {
                 pot_map.insert(pot.name.clone(), pot.clone());
                 if let Some(child_pots) = &pot.bonsai {
-                    child_pots.iter().try_for_each(|p| p.update_pot_map(pot_map))?;
+                    child_pots
+                        .iter()
+                        .try_for_each(|p| p.update_pot_map(pot_map))?;
                 }
             }
         }

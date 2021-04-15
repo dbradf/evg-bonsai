@@ -14,6 +14,18 @@ impl BonsaiCall {
         let parts: Vec<&str> = self.bonsai.split(':').collect();
         format!("{}_{}", parts[0], parts[1])
     }
+
+    pub fn to_evg_command(&self) -> EvgCommand {
+        let parameters = match &self.params {
+            Some(vars) => Some(vars.clone()),
+            None => None,
+        };
+        EvgCommand::Function(FunctionCall {
+            func: self.get_fn_name(),
+            vars: parameters,
+            timeout_secs: None,
+        })
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -23,25 +35,16 @@ pub enum BonsaiCommand {
     Bonsai(BonsaiCall),
 }
 
-pub fn translate_command_list(bonsai_command_list: &[BonsaiCommand]) -> Vec<EvgCommand> {
-    let mut command_list = vec![];
-    for command in bonsai_command_list {
-        let evg_command = match command {
-            BonsaiCommand::Bonsai(b_cmd) => {
-                let parameters = match &b_cmd.params {
-                    Some(vars) => Some(vars.clone()),
-                    None => None,
-                };
-                EvgCommand::Function(FunctionCall {
-                    func: b_cmd.get_fn_name(),
-                    vars: parameters,
-                    timeout_secs: None,
-                })
-            }
-            BonsaiCommand::EvergreenNative(c) => c.clone(),
-        };
-        command_list.push(evg_command);
+pub fn translate_command(bonsai_command: &BonsaiCommand) -> EvgCommand {
+    match bonsai_command {
+        BonsaiCommand::Bonsai(b_cmd) => b_cmd.to_evg_command(),
+        BonsaiCommand::EvergreenNative(c) => c.clone(),
     }
+}
 
-    command_list
+pub fn translate_command_list(bonsai_command_list: &[BonsaiCommand]) -> Vec<EvgCommand> {
+    bonsai_command_list
+        .iter()
+        .map(|c| translate_command(c))
+        .collect()
 }

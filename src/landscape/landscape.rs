@@ -1,16 +1,18 @@
 use crate::landscape::command::{translate_command_list, BonsaiCommand};
+use crate::landscape::function::{translate_functions, BonsaiFunctionDef};
 use crate::landscape::pot::{BonsaiPotDesc, BonsaiPotSource};
 use crate::landscape::task::BonsaiTask;
 use crate::pot::remote_pot::copy_support_files;
 use serde::{Deserialize, Serialize};
 use shrub_rs::models::builtin::EvgCommandType;
 use shrub_rs::models::commands::EvgCommand;
-use shrub_rs::models::project::{EvgModule, EvgParameter, EvgProject};
+use shrub_rs::models::project::{EvgModule, EvgParameter, EvgProject, FunctionDefinition};
 use shrub_rs::models::task::EvgTask;
 use shrub_rs::models::variant::BuildVariant;
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::Path;
+use shrub_rs::models::task_group::EvgTaskGroup;
 
 /// Description of an Bonsai Consumer Project.
 #[derive(Serialize, Deserialize, Debug)]
@@ -21,9 +23,12 @@ pub struct BonsaiLandscape {
     pub buildvariants: Vec<BuildVariant>,
     /// List of task definitions.
     pub tasks: Vec<BonsaiTask>,
+
+    pub task_groups: Vec<EvgTaskGroup>,
+
     /// Definitions of functions belonging to this landscape.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub functions: Option<HashMap<String, Vec<BonsaiCommand>>>,
+    pub functions: Option<HashMap<String, BonsaiFunctionDef>>,
     /// List of commands to run at the start of each task.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pre: Option<Vec<BonsaiCommand>>,
@@ -64,6 +69,7 @@ impl Default for BonsaiLandscape {
             bonsai: None,
             buildvariants: vec![],
             tasks: vec![],
+            task_groups: vec![],
             functions: Default::default(),
             pre: None,
             post: None,
@@ -95,16 +101,9 @@ impl BonsaiLandscape {
     pub fn create_evg_project(&self) -> Result<EvgProject, Box<dyn Error>> {
         let mut pot_map = HashMap::new();
         if let Some(bonsai_pot_list) = &self.bonsai {
-            bonsai_pot_list.iter().try_for_each(|p| p.update_pot_map(&mut pot_map))?;
-            // for pot_descriptor in bonsai_pot_list {
-            //     pot_descriptor.update_pot_map(&mut pot_map)?;
-            //     // let pot_list = pot_descriptor.get_pots()?;
-            //     // for pot in pot_list {
-            //     //     for (fn_name, fn_def) in pot.functions {
-            //     //         function_map.insert(format!("{}_{}", pot.name, fn_name), fn_def.actions);
-            //     //     }
-            //     // }
-            // }
+            bonsai_pot_list
+                .iter()
+                .try_for_each(|p| p.update_pot_map(&mut pot_map))?;
         }
 
         let mut function_map = HashMap::new();
@@ -112,12 +111,6 @@ impl BonsaiLandscape {
         while still_updating {
             still_updating = pot_map.values().any(|p| p.update_fn_map(&mut function_map));
         }
-        // for pot in &pot_map.values() {
-        //
-        //     for (fn_name, fn_dev) in pot.functions {
-        //         function_map.insert(format!("{}_{}", pot.name, fn_name), );
-        //     }
-        // }
 
         Ok(EvgProject {
             buildvariants: self.buildvariants.clone(),
@@ -129,6 +122,7 @@ impl BonsaiLandscape {
                 .collect(),
 
             tasks: self.translate_tasks(),
+            task_groups: self.task_groups.to_vec(),
             pre: self.translate_pre(),
             post: self.translate_post(),
             timeout: self.translate_timeout(),
@@ -171,13 +165,11 @@ impl BonsaiLandscape {
         self.tasks.iter().map(|t| t.to_evg_task()).collect()
     }
 
-    fn translate_functions(&self) -> HashMap<String, Vec<EvgCommand>> {
-        let mut new_map = HashMap::new();
+    fn translate_functions(&self) -> HashMap<String, FunctionDefinition> {
         if let Some(functions) = &self.functions {
-            for (k, v) in functions {
-                new_map.insert(k.clone(), translate_command_list(&v));
-            }
+            translate_functions(functions)
+        } else {
+            HashMap::new()
         }
-        new_map
     }
 }

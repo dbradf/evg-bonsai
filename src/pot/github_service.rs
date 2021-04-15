@@ -122,7 +122,6 @@ pub fn get_repository(
     fast_forward(&repo)?;
 
     if let Some(version) = maybe_version {
-        println!("Version {:?} specified", version);
         match version {
             GithubVersionSpec::Branch(branch) => checkout_branch(&repo, branch)?,
             GithubVersionSpec::Revision(rev) => checkout_revision(&repo, rev)?,

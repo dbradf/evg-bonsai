@@ -4,11 +4,26 @@ use std::error::Error;
 use std::fs::{create_dir_all, read_to_string, File};
 use std::io::{BufWriter, Write};
 use std::path::Path;
+use yaml_rust::{YamlLoader, YamlEmitter};
+use yaml_merge_keys::merge_keys;
 
 pub mod landscape;
 pub mod pot;
 
 const SUPPORT_FILE_DIRECTORY: &str = "bonsai_files";
+
+fn get_merged_yaml(yaml_contents: &str) -> Result<String, Box<dyn Error>> {
+    let raw = YamlLoader::load_from_str(&yaml_contents)?.remove(0);
+    let merged = merge_keys(raw)?;
+
+    let mut out_str = String::new();
+    {
+        let mut emitter = YamlEmitter::new(&mut out_str);
+        emitter.dump(&merged)?;
+    }
+
+    Ok(out_str)
+}
 
 pub fn build_landscape(
     source_file: &Path,
@@ -22,7 +37,8 @@ pub fn build_landscape(
     support_files_destination.push(SUPPORT_FILE_DIRECTORY);
 
     let contents = read_to_string(source_file)?;
-    let bonsai_project: BonsaiLandscape = serde_yaml::from_str(&contents)?;
+    let merged_contents = get_merged_yaml(&contents)?;
+    let bonsai_project: BonsaiLandscape = serde_yaml::from_str(&merged_contents)?;
     let evergreen_project = bonsai_project.create_evg_project()?;
     bonsai_project.copy_remote_support_files(support_files_destination.as_path())?;
 

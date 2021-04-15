@@ -115,6 +115,8 @@ dependencies = [
  "shrub-rs",
  "simple-error",
  "structopt",
+ "yaml-merge-keys",
+ "yaml-rust",
 ]
 
 [[package]]
@@ -432,11 +434,14 @@ dependencies = [
 
 [[package]]
 name = "shrub-rs"
-version = "0.1.2"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "024d2d604cd1427f414aa50c7e01aa183b1775b505bfae1b3de6e7fd7b1ed2c1"
+checksum = "49459da91adf500c2d8c338d88bb6f11adbc807f314a570e5a3b3a9631df487c"
 dependencies = [
  "serde",
+ "serde_yaml",
+ "yaml-merge-keys",
+ "yaml-rust",
 ]
 
 [[package]]
@@ -493,6 +498,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d326610f408c7a4eb6f51c37c330e496b08506c9457c9d34287ecc38809fb060"
 dependencies = [
  "unicode-width",
+]
+
+[[package]]
+name = "thiserror"
+version = "1.0.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0f4a65597094d4483ddaed134f409b2cb7c1beccf25201a9f73c719254fa98e"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7765189610d8241a44529806d6fd1f2e0a08734313a35d5b3a556f92b381f3c0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -614,6 +639,17 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "yaml-merge-keys"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd236a7dc9bb598f349fe4a8754f49181fee50284daa15cd1ba652d722280004"
+dependencies = [
+ "lazy_static",
+ "thiserror",
+ "yaml-rust",
+]
 
 [[package]]
 name = "yaml-rust"
