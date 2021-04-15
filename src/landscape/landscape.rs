@@ -116,7 +116,7 @@ impl BonsaiLandscape {
             buildvariants: self.buildvariants.clone(),
 
             functions: self
-                .translate_functions()
+                .translate_functions(&function_map)
                 .into_iter()
                 .chain(function_map)
                 .collect(),
@@ -165,9 +165,9 @@ impl BonsaiLandscape {
         self.tasks.iter().map(|t| t.to_evg_task()).collect()
     }
 
-    fn translate_functions(&self) -> HashMap<String, FunctionDefinition> {
+    fn translate_functions(&self, bonsai_fns: &HashMap<String, FunctionDefinition>) -> HashMap<String, FunctionDefinition> {
         if let Some(functions) = &self.functions {
-            translate_functions(functions)
+            translate_functions(functions, bonsai_fns)
         } else {
             HashMap::new()
         }
