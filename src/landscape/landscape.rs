@@ -24,7 +24,8 @@ pub struct BonsaiLandscape {
     /// List of task definitions.
     pub tasks: Vec<BonsaiTask>,
 
-    pub task_groups: Vec<EvgTaskGroup>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub task_groups: Option<Vec<EvgTaskGroup>>,
 
     /// Definitions of functions belonging to this landscape.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -69,7 +70,7 @@ impl Default for BonsaiLandscape {
             bonsai: None,
             buildvariants: vec![],
             tasks: vec![],
-            task_groups: vec![],
+            task_groups: None,
             functions: Default::default(),
             pre: None,
             post: None,
@@ -122,7 +123,7 @@ impl BonsaiLandscape {
                 .collect(),
 
             tasks: self.translate_tasks(),
-            task_groups: self.task_groups.to_vec(),
+            task_groups: self.task_groups.as_ref().map(|tg| tg.to_vec()),
             pre: self.translate_pre(),
             post: self.translate_post(),
             timeout: self.translate_timeout(),
