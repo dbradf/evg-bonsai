@@ -1,4 +1,4 @@
-use crate::landscape::command::{translate_command, translate_command_list, BonsaiCommand};
+use crate::landscape::command::{translate_command, BonsaiCommand};
 use serde::{Deserialize, Serialize};
 use shrub_rs::models::project::FunctionDefinition;
 use std::collections::HashMap;
