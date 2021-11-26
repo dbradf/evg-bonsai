@@ -1,6 +1,8 @@
-use crate::landscape::command::{translate_command_list, BonsaiCommand};
+use crate::landscape::command::BonsaiCommand;
 use serde::{Deserialize, Serialize};
 use shrub_rs::models::task::{EvgTask, TaskDependency};
+
+use super::command::BonsaiTranslator;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BonsaiTask {
@@ -26,8 +28,8 @@ pub struct BonsaiTask {
 }
 
 impl BonsaiTask {
-    pub fn to_evg_task(&self) -> EvgTask {
-        let command_list = translate_command_list(&self.commands);
+    pub fn to_evg_task(&self, bonsai_translator: &mut BonsaiTranslator) -> EvgTask {
+        let command_list = bonsai_translator.translate_command_list(&self.commands);
 
         EvgTask {
             name: self.name.clone(),

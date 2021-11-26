@@ -1,4 +1,4 @@
-use crate::landscape::command::{translate_command_list, BonsaiCommand};
+use crate::landscape::command::BonsaiCommand;
 use crate::landscape::function::{translate_functions, BonsaiFunctionDef};
 use crate::landscape::pot::{BonsaiPotDesc, BonsaiPotSource};
 use crate::landscape::task::BonsaiTask;
@@ -8,11 +8,13 @@ use shrub_rs::models::builtin::EvgCommandType;
 use shrub_rs::models::commands::EvgCommand;
 use shrub_rs::models::project::{EvgModule, EvgParameter, EvgProject, FunctionDefinition};
 use shrub_rs::models::task::EvgTask;
+use shrub_rs::models::task_group::EvgTaskGroup;
 use shrub_rs::models::variant::BuildVariant;
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::Path;
-use shrub_rs::models::task_group::EvgTaskGroup;
+
+use super::command::BonsaiTranslator;
 
 /// Description of an Bonsai Consumer Project.
 #[derive(Serialize, Deserialize, Debug)]
@@ -87,11 +89,19 @@ impl Default for BonsaiLandscape {
 }
 
 impl BonsaiLandscape {
-    pub fn copy_remote_support_files(&self, destination_dir: &Path) -> Result<(), Box<dyn Error>> {
+    pub fn copy_remote_support_files(
+        &self,
+        destination_dir: &Path,
+        bonsai_translator: &BonsaiTranslator,
+    ) -> Result<(), Box<dyn Error>> {
         if let Some(bonsai_pot_list) = &self.bonsai {
             for pot_descriptor in bonsai_pot_list {
                 if let BonsaiPotSource::Github(github_source) = &pot_descriptor.source {
-                    copy_support_files(github_source, destination_dir)?;
+                    copy_support_files(
+                        github_source,
+                        destination_dir,
+                        &bonsai_translator.seen_pots,
+                    )?;
                 }
             }
         }
@@ -99,34 +109,27 @@ impl BonsaiLandscape {
         Ok(())
     }
 
-    pub fn create_evg_project(&self) -> Result<EvgProject, Box<dyn Error>> {
-        let mut pot_map = HashMap::new();
-        if let Some(bonsai_pot_list) = &self.bonsai {
-            bonsai_pot_list
-                .iter()
-                .try_for_each(|p| p.update_pot_map(&mut pot_map))?;
-        }
+    pub fn create_evg_project(
+        &self,
+        bonsai_translator: &mut BonsaiTranslator,
+    ) -> Result<EvgProject, Box<dyn Error>> {
+        let pot_map = PotMap::new(&self.bonsai)?;
 
-        let mut function_map = HashMap::new();
-        let mut still_updating = true;
-        while still_updating {
-            still_updating = pot_map.values().any(|p| p.update_fn_map(&mut function_map));
-        }
+        let tasks = self.translate_tasks(bonsai_translator);
+        let pre = self.translate_pre(bonsai_translator);
+        let post = self.translate_post(bonsai_translator);
+        let timeout = self.translate_timeout(bonsai_translator);
 
         Ok(EvgProject {
             buildvariants: self.buildvariants.clone(),
 
-            functions: self
-                .translate_functions(&function_map)
-                .into_iter()
-                .chain(function_map)
-                .collect(),
+            functions: pot_map.get_function_definitions(&self.functions, bonsai_translator),
 
-            tasks: self.translate_tasks(),
+            tasks,
             task_groups: self.task_groups.as_ref().map(|tg| tg.to_vec()),
-            pre: self.translate_pre(),
-            post: self.translate_post(),
-            timeout: self.translate_timeout(),
+            pre,
+            post,
+            timeout,
 
             modules: self.modules.as_ref().map(|m| m.to_vec()),
             stepback: self.stepback,
@@ -138,39 +141,99 @@ impl BonsaiLandscape {
         })
     }
 
-    fn translate_pre(&self) -> Option<Vec<EvgCommand>> {
+    fn translate_pre(&self, bonsai_translator: &mut BonsaiTranslator) -> Option<Vec<EvgCommand>> {
         if let Some(pre_commands) = &self.pre {
-            Some(translate_command_list(pre_commands))
+            Some(bonsai_translator.translate_command_list(pre_commands))
         } else {
             None
         }
     }
 
-    fn translate_post(&self) -> Option<Vec<EvgCommand>> {
+    fn translate_post(&self, bonsai_translator: &mut BonsaiTranslator) -> Option<Vec<EvgCommand>> {
         if let Some(post_commands) = &self.post {
-            Some(translate_command_list(post_commands))
+            Some(bonsai_translator.translate_command_list(post_commands))
         } else {
             None
         }
     }
 
-    fn translate_timeout(&self) -> Option<Vec<EvgCommand>> {
+    fn translate_timeout(
+        &self,
+        bonsai_translator: &mut BonsaiTranslator,
+    ) -> Option<Vec<EvgCommand>> {
         if let Some(timeout_commands) = &self.timeout {
-            Some(translate_command_list(timeout_commands))
+            Some(bonsai_translator.translate_command_list(timeout_commands))
         } else {
             None
         }
     }
 
-    fn translate_tasks(&self) -> Vec<EvgTask> {
-        self.tasks.iter().map(|t| t.to_evg_task()).collect()
+    fn translate_tasks(&self, bonsai_translator: &mut BonsaiTranslator) -> Vec<EvgTask> {
+        self.tasks
+            .iter()
+            .map(|t| t.to_evg_task(bonsai_translator))
+            .collect()
+    }
+}
+
+struct PotMap {
+    pub function_map: HashMap<String, FunctionDefinition>,
+}
+
+impl PotMap {
+    fn new(bonsai: &Option<Vec<BonsaiPotDesc>>) -> Result<Self, Box<dyn Error>> {
+        let mut pot_map = HashMap::new();
+        if let Some(bonsai_pot_list) = bonsai {
+            bonsai_pot_list
+                .iter()
+                .try_for_each(|p| p.update_pot_map(&mut pot_map))?;
+        }
+
+        let mut function_map = HashMap::new();
+        let mut still_updating = true;
+        while still_updating {
+            still_updating = pot_map.values().any(|p| p.update_fn_map(&mut function_map));
+        }
+
+        Ok(Self { function_map })
     }
 
-    fn translate_functions(&self, bonsai_fns: &HashMap<String, FunctionDefinition>) -> HashMap<String, FunctionDefinition> {
-        if let Some(functions) = &self.functions {
-            translate_functions(functions, bonsai_fns)
+    fn translate_functions(
+        &self,
+        functions: &Option<HashMap<String, BonsaiFunctionDef>>,
+        bonsai_translator: &mut BonsaiTranslator,
+    ) -> HashMap<String, FunctionDefinition> {
+        if let Some(functions) = functions {
+            translate_functions(functions, &self.function_map, bonsai_translator)
         } else {
             HashMap::new()
         }
+    }
+
+    fn get_used_functions(
+        &self,
+        bonsai_translator: &BonsaiTranslator,
+    ) -> HashMap<String, FunctionDefinition> {
+        let mut used_functions = HashMap::new();
+        for (name, definition) in &self.function_map {
+            if bonsai_translator.is_used(name) {
+                used_functions.insert(name.clone(), definition.clone());
+            }
+        }
+        used_functions
+        // let bonsai_functions = &self.function_map;
+        // self.function_map.iter().filter(|(name, _)| bonsai_translator.is_used(name)).collect()
+    }
+
+    fn get_function_definitions(
+        &self,
+        functions: &Option<HashMap<String, BonsaiFunctionDef>>,
+        bonsai_translator: &mut BonsaiTranslator,
+    ) -> HashMap<String, FunctionDefinition> {
+        let functions = self.translate_functions(&functions, bonsai_translator);
+        functions
+            .into_iter()
+            .chain(self.get_used_functions(bonsai_translator))
+            .collect()
     }
 }

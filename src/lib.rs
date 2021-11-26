@@ -1,11 +1,12 @@
+use crate::landscape::command::BonsaiTranslator;
 use crate::landscape::landscape::BonsaiLandscape;
 use chrono::Utc;
 use std::error::Error;
 use std::fs::{create_dir_all, read_to_string, File};
 use std::io::{BufWriter, Write};
 use std::path::Path;
-use yaml_rust::{YamlLoader, YamlEmitter};
 use yaml_merge_keys::merge_keys;
+use yaml_rust::{YamlEmitter, YamlLoader};
 
 pub mod landscape;
 pub mod pot;
@@ -39,8 +40,10 @@ pub fn build_landscape(
     let contents = read_to_string(source_file)?;
     let merged_contents = get_merged_yaml(&contents)?;
     let bonsai_project: BonsaiLandscape = serde_yaml::from_str(&merged_contents)?;
-    let evergreen_project = bonsai_project.create_evg_project()?;
-    bonsai_project.copy_remote_support_files(support_files_destination.as_path())?;
+    let mut bonsai_translator = BonsaiTranslator::new();
+    let evergreen_project = bonsai_project.create_evg_project(&mut bonsai_translator)?;
+    bonsai_project
+        .copy_remote_support_files(support_files_destination.as_path(), &bonsai_translator)?;
 
     let project_config = serde_yaml::to_string(&evergreen_project)?;
     let now = Utc::now();

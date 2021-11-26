@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::error::Error;
 use std::fs;
 use std::fs::create_dir_all;
@@ -6,6 +7,7 @@ use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BonsaiPotMetadata {
+    pub name: String,
     pub path: String,
     pub description: String,
     pub include_files: Option<Vec<String>>,
@@ -52,9 +54,11 @@ impl BonsaiPotManifest {
         &self,
         base_dir: &Path,
         destination_dir: &Path,
+        used_pots: &HashSet<String>,
     ) -> Result<(), Box<dyn Error>> {
         self.bonsai_pots
             .iter()
+            .filter(|p| used_pots.contains(&p.name))
             .try_for_each(|p| p.copy_files_to_destination(base_dir, destination_dir))?;
 
         Ok(())

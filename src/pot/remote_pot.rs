@@ -2,6 +2,7 @@ use crate::landscape::pot::{BonsaiPot, GithubSourceDesc};
 use crate::pot::github_service::get_repository;
 use crate::pot::manifest::BonsaiPotManifest;
 use simple_error::bail;
+use std::collections::HashSet;
 use std::error::Error;
 use std::path::Path;
 
@@ -39,6 +40,7 @@ pub fn get_remote_pots(github_source: &GithubSourceDesc) -> Result<Vec<BonsaiPot
 pub fn copy_support_files(
     github_source: &GithubSourceDesc,
     destination_dir: &Path,
+    used_pots: &HashSet<String>,
 ) -> Result<(), Box<dyn Error>> {
     let repo_path = get_repository(
         &github_source.owner,
@@ -46,7 +48,7 @@ pub fn copy_support_files(
         &github_source.version,
     )?;
     let manifest = find_manifest(repo_path.as_path())?;
-    manifest.copy_support_files(repo_path.as_path(), destination_dir)?;
+    manifest.copy_support_files(repo_path.as_path(), destination_dir, used_pots)?;
 
     Ok(())
 }
